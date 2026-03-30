@@ -7,7 +7,7 @@
 
 typedef void (*GameSendChatFunc)(const char* msg, int type);
 
-#define GAME_SEND_CHAT_MESSAGE_FUNCTION_OFFSET 0x0
+#define GAME_SEND_CHAT_MESSAGE_FUNCTION_OFFSET 0x16D2D00
 
 unsigned long get_lib_base(const char* name) {
     char line[512];
