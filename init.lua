@@ -1,5 +1,5 @@
 --[[
-    [ Deltoid ] KX init.lua
+    [ Deltoid KX ] init.lua
 --]]
 
 local getgenv = getgenv or function() return _G end
@@ -13,8 +13,9 @@ local api = {
     getgenv = getgenv,
     getrenv = function() return game end,
     getreg  = function() return debug.getregistry() end,
+    getgc   = function() return debug.getgc() end,
     getrawmetatable = function(t) return debug.getmetatable(t) end,
-    setreadonly = function(t, v) end, -- handled by C bridge
+    setreadonly = function(t, v) end, -- bridged via C
 }
 
 -- request handler
@@ -33,8 +34,4 @@ for name, func in pairs(api) do
     if not env[name] then env[name] = func end
 end
 
-print("[ Deltoid ] env ready.")
-
-
-
-print("[ Deltoid ] functions mapped to global env.")
+print("[ Deltoid KX ] env ready.")
