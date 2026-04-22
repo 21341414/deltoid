@@ -31,6 +31,12 @@ int getgenv(void* L) {
     return 1; // returns globals
 }
 
+int setreadonly_bridge(void* L) {
+    // index 1: table, index 2: boolean
+    r_setreadonly(L, 1, 0); 
+    return 0;
+}
+
 // heavyweight signature scanner 
 uintptr_t scan_memory(uintptr_t start, uintptr_t end, const char* pattern) {
     const char* pat = pattern;
