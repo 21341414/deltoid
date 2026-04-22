@@ -6,16 +6,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: setup
-        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev gcc-multilib
       - name: compile
         run: |
           gcc -fPIC -shared injected_lib.c -o libdeltoid.so -ldl -lpthread
           gcc Injector.c -o deltoid_launcher
-      - name: artifacts
+          gcc $(pkg-config --cflags gtk4) deltoidUI.c -o Deltoid_GUI $(pkg-config --libs gtk4)
+      - name: release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Deltoid-Bin
+          name: Deltoid-Build
           path: |
             libdeltoid.so
             deltoid_launcher
+            Deltoid_GUI
             init.lua
