@@ -1,0 +1,19 @@
+name: Build Deltoid
+on: [push]
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: sudo apt-get install -y gcc-multilib
+      - name: Build Library
+        run: |
+          mkdir -p build
+          gcc -fPIC -shared src/main.c src/scanner.c src/unc.c -o build/libdeltoid.so -ldl
+          gcc src/injector.c -o build/deltoid_launcher
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: Deltoid-Binaries
+          path: build/
