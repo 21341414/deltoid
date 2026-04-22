@@ -16,12 +16,12 @@ static void on_execute(GtkButton *btn, gpointer data) {
 
 static void on_attach(GtkButton *btn, gpointer data) {
     system("./deltoid_launcher");
-    gtk_button_set_label(btn, "attached!");
+    gtk_button_set_label(btn, "attached ( success )");
 }
 
 static void activate(GtkApplication *app, gpointer data) {
     GtkWidget *win = gtk_application_window_new(app);
-    gtk_window_set_title(GTK_WINDOW(win), "Deltoid KX Dashboard");
+    gtk_window_set_title(GTK_WINDOW(win), "Deltoid KX");
     gtk_window_set_default_size(GTK_WINDOW(win), 800, 400);
 
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
