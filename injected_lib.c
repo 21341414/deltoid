@@ -5,33 +5,39 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <link.h>
+#include <unistd.h>
 #include <sys/mman.h>
 
-// roblox lua types 
-typedef void (*r_lua_pushstring)(void* L, const char* s);
-typedef void (*r_lua_setglobal)(void* L, const char* name);
+// internal func types
 typedef void (*r_lua_pushcclosure)(void* L, int (*fn)(void*), int n);
+typedef void (*r_lua_setfield)(void* L, int idx, const char* k);
+typedef void (*r_lua_pushstring)(void* L, const char* s);
+typedef void* (*r_lua_getmetatable)(void* L, int idx);
+typedef void (*r_lua_setreadonly)(void* L, int idx, int enabled);
 
-// unc func implementations 
+// function Pointers
+r_lua_pushcclosure r_pushcclosure;
+r_lua_setfield r_setfield;
+r_lua_pushstring r_pushstring;
+r_lua_setreadonly r_setreadonly;
+
+// unc func
 int identifyexecutor(void* L) {
-    // ts is how we find the internal pushstring function
-    // for this example, we assume we've mapped it to a global pointer
-    printf("[Deltoid] identifyexecutor called!\n");
-    return 1; // num of results returned to lua
+    r_pushstring(L, "Deltoid KX");
+    return 1; 
 }
 
 int getgenv(void* L) {
-    // returns the global environment table
-    return 1;
+    return 1; // returns globals
 }
 
-//  mem scanner 
-uintptr_t find_pattern(uintptr_t start, uintptr_t end, const char* pattern) {
+// heavyweight signature scanner 
+uintptr_t scan_memory(uintptr_t start, uintptr_t end, const char* pattern) {
     const char* pat = pattern;
     uintptr_t first_match = 0;
     for (uintptr_t cur = start; cur < end; cur++) {
         if (!*pat) return first_match;
-        if (*(uint8_t*)pat == '\?' || *(uint8_t*)cur == (uint8_t)strtoul(pat, (char**)&pat, 16)) {
+        if (*(uint8_t*)pat == '?' || *(uint8_t*)cur == (uint8_t)strtoul(pat, (char**)&pat, 16)) {
             if (!first_match) first_match = cur;
             if (!*pat) return first_match;
         } else {
@@ -42,28 +48,20 @@ uintptr_t find_pattern(uintptr_t start, uintptr_t end, const char* pattern) {
     return 0;
 }
 
-// constructor ( runs on load ) 
-void __attribute__((constructor)) deltoid_main() {
-    printf("\n[Deltoid] Hooking Sober Runtime...\n");
-
-    // get the base address of libSoberRuntime.so
+// entry
+void __attribute__((constructor)) deltoid_init() {
     struct link_map* map;
     void* handle = dlopen("libSoberRuntime.so", RTLD_LAZY | RTLD_NOLOAD);
-    if (!handle) {
-        printf("[ Deltoid ] failed to find sober lib.\n");
-        return;
-    }
+    if (!handle) return;
     dlinfo(handle, RTLD_DI_LINKMAP, &map);
     uintptr_t base = (uintptr_t)map->l_addr;
 
-    // scan for roblox's lua funcs ( using AOBs )
-    // noted : these AOBs are example patterns for the x86_64 android build
-    uintptr_t pushstring_addr = find_pattern(base, base + 0x5000000, "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B F2");
-    
-    if (pushstring_addr) {
-        printf("[ Deltoid ] found pushstring at %p\n", (void*)pushstring_addr);
-        // you would cast pushstring_addr to r_lua_pushstring and use it
-    }
+    // scan for roblox functions
+    r_pushstring = (r_lua_pushstring)scan_memory(base, base + 0x6000000, "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B F2");
+    r_pushcclosure = (r_lua_pushcclosure)scan_memory(base, base + 0x6000000, "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC 20 4C 8B D1");
+    r_setreadonly = (r_lua_setreadonly)scan_memory(base, base + 0x6000000, "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B DA");
 
-    printf("[Deltoid] UNC Bridge Initialized.\n");
+    if (r_pushstring && r_pushcclosure) {
+        printf("[ Deltoid ] module injected. unc.\n");
+    }
 }
