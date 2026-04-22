@@ -1,22 +1,21 @@
-name: Deltoid CI Build
+name: Build Deltoid KX
 on: [push]
 jobs:
-  build_linux:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Build Deltoid
+      - name: setup
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - name: compile
         run: |
-          # Build with full optimizations and stealth flags
-          gcc -shared -fPIC -O3 injected_lib.c -o libdeltoid.so -ldl -lpthread
-          gcc -O3 Injector.c -o Deltoid_Launcher
-          
-      - name: Create Release Artifacts
+          gcc -fPIC -shared injected_lib.c -o libdeltoid.so -ldl -lpthread
+          gcc Injector.c -o deltoid_launcher
+      - name: artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Deltoid
+          name: Deltoid-Bin
           path: |
             libdeltoid.so
-            Deltoid_Launcher
+            deltoid_launcher
             init.lua
