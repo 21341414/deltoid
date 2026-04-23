@@ -1,23 +1,209 @@
-name: Build Deltoid KX
-on: [push]
+name: build deltoid kx
+
+on:
+  push:
+    branches: ["main"]
+  release:
+    types: [created]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - name: setup
-        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev gcc-multilib
-      - name: compile
+
+      - name: cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt
+          key: apt-gtk4-${{ runner.os }}
+
+      - name: install dependencies
         run: |
-          gcc -fPIC -shared injected_lib.c -o libdeltoid.so -ldl -lpthread
-          gcc Injector.c -o deltoid_launcher
-          gcc $(pkg-config --cflags gtk4) deltoidUI.c -o Deltoid_GUI $(pkg-config --libs gtk4)
-      - name: release artifacts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            gcc pkg-config libgtk-4-dev libglib2.0-dev
+
+      - name: build libdeltoid.so
+        run: |
+          gcc -fPIC -shared -O2 -Wall -Wextra \
+            injected_lib.c \
+            -o libdeltoid.so \
+            -ldl -lpthread
+
+      - name: build launcher
+        run: |
+          gcc -O2 -Wall -Wextra \
+            Injector.c \
+            -o deltoid_launcher
+
+      - name: build gui
+        run: |
+          gcc -O2 -Wall -Wextra \
+            $(pkg-config --cflags gtk4) \
+            deltoidUI.c \
+            -o Deltoid_GUI \
+            $(pkg-config --libs gtk4)
+
+      - name: generate readme
+        run: |
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          cat > HOW_TO_USE.txt << EOF
+          ================================================================
+            DELTOID KX  —  sober lua executor for linux / chromeos
+            build: ${SHORT_SHA}   built: $(date -u '+%Y-%m-%d %H:%M UTC')
+          ================================================================
+
+          WHAT YOU NEED
+          ----------------------------------------------------------------
+          - chromeos with linux (crostini) enabled, OR any debian/ubuntu
+          - sober installed via flatpak  (org.vinegarhq.Sober)
+          - roblox account
+
+          STEP 1 — install dependencies (one time only)
+          ----------------------------------------------------------------
+          open your linux terminal and run:
+
+            sudo apt-get update
+            sudo apt-get install -y flatpak libgtk-4-dev curl python3
+
+            flatpak remote-add --if-not-exists flathub \
+              https://flathub.org/repo/flathub.flatpakrepo
+
+            flatpak install flathub org.vinegarhq.Sober
+
+          STEP 2 — download the release
+          ----------------------------------------------------------------
+          go to the releases page on github and download:
+
+            libdeltoid.so       <- the injection library  (required)
+            deltoid_launcher    <- sets up the hook       (required)
+            Deltoid_GUI         <- the script editor      (required)
+            init.lua            <- unc environment        (required)
+
+          put all four files in the same folder, e.g.:
+
+            mkdir -p ~/deltoid
+            mv ~/Downloads/{libdeltoid.so,deltoid_launcher,Deltoid_GUI,init.lua} ~/deltoid/
+            cd ~/deltoid
+
+          STEP 3 — make binaries executable (one time only)
+          ----------------------------------------------------------------
+
+            chmod +x deltoid_launcher Deltoid_GUI
+
+          STEP 4 — run the launcher  (sets the injection hook)
+          ----------------------------------------------------------------
+
+            cd ~/deltoid
+            ./deltoid_launcher
+
+          you should see:
+            [ deltoid ] hook set. launch sober now.
+
+          if you see an error, make sure flatpak is installed and
+          org.vinegarhq.Sober is present:
+            flatpak list | grep Sober
+
+          STEP 5 — launch sober
+          ----------------------------------------------------------------
+          after the launcher succeeds, start sober normally:
+
+            flatpak run org.vinegarhq.Sober
+
+          OR use the convenience script (switches to OpenGL automatically,
+          which is more stable on chromeos):
+
+            #!/bin/bash
+            CONFIG="\$HOME/.var/app/org.vinegarhq.Sober/config/sober/config.json"
+            if [ -f "\$CONFIG" ]; then
+              python3 -c "
+          import json
+          with open('\$CONFIG') as f: c = json.load(f)
+          c['graphics_api'] = 'OpenGL'
+          with open('\$CONFIG','w') as f: json.dump(c, f, indent=2)
+          "
+            fi
+            flatpak run org.vinegarhq.Sober
+
+          save that as ~/deltoid/launch.sh, then:
+            chmod +x ~/deltoid/launch.sh
+            ~/deltoid/launch.sh
+
+          STEP 6 — open the gui
+          ----------------------------------------------------------------
+          while sober/roblox is running, open a second terminal:
+
+            cd ~/deltoid
+            ./Deltoid_GUI
+
+          1. click  ATTACH  — wait for "attached" status
+          2. paste your lua script in the editor
+          3. click  EXECUTE
+
+          the script will be picked up by the injected library
+          within ~200ms and run inside roblox.
+
+          STEP 7 — running scripts via file (no gui)
+          ----------------------------------------------------------------
+          you can also drop a lua file directly:
+
+            cp myscript.lua /tmp/deltoid_exec.lua
+
+          the injected library polls /tmp/deltoid_exec.lua every 200ms.
+          it will execute and delete the file automatically.
+
+          TROUBLESHOOTING
+          ----------------------------------------------------------------
+          sober not found:
+            flatpak list | grep Sober
+            -> if missing: flatpak install flathub org.vinegarhq.Sober
+
+          hook not working after launcher:
+            flatpak override --user --show org.vinegarhq.Sober
+            -> should show LD_PRELOAD pointing to libdeltoid.so
+
+          reset all overrides (clean slate):
+            flatpak override --user --reset org.vinegarhq.Sober
+
+          gui won't open (missing gtk4):
+            sudo apt-get install -y libgtk-4-dev
+
+          black screen / crash in sober:
+            set graphics_api to OpenGL (see step 5 convenience script)
+
+          script not executing:
+            check /tmp/deltoid_exec.lua exists after clicking execute
+            check sober terminal output for [ deltoid ] log lines
+
+          ================================================================
+            deltoid kx is provided as-is for educational purposes.
+            use at your own risk.
+          ================================================================
+          EOF
+
+      - name: upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Deltoid-Build
+          name: deltoid-kx-${{ github.sha }}
           path: |
             libdeltoid.so
             deltoid_launcher
             Deltoid_GUI
             init.lua
+            HOW_TO_USE.txt
+          retention-days: 30
+
+      - name: publish release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: HOW_TO_USE.txt
+          files: |
+            libdeltoid.so
+            deltoid_launcher
+            Deltoid_GUI
+            init.lua
+            HOW_TO_USE.txt
