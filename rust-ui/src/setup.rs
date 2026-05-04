@@ -93,7 +93,8 @@ pub fn check_inject_status() -> InjectStatus {
     if let Ok(content) = fs::read_to_string("/tmp/deltoid_active") {
         let parts: Vec<&str> = content.trim().split_whitespace().collect();
         if parts.len() == 2 {
-            if let (Ok(file_pid), Ok(file_ts)) = (parts[0].parse::<u32>(), parts[1].parse::<u64>()) {
+            if let (Ok(file_pid), Ok(file_ts)) = (parts[0].parse::<u32>(), parts[1].parse::<u64>())
+            {
                 if file_pid == pid {
                     let now = SystemTime::now()
                         .duration_since(UNIX_EPOCH)

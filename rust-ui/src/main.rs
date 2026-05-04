@@ -134,10 +134,7 @@ impl eframe::App for DeltoidApp {
                             .add_sized(
                                 egui::vec2(110.0, 32.0),
                                 egui::Button::new(
-                                    egui::RichText::new(label)
-                                        .color(color)
-                                        .size(14.0)
-                                        .strong(),
+                                    egui::RichText::new(label).color(color).size(14.0).strong(),
                                 )
                                 .fill(bg)
                                 .rounding(egui::Rounding::same(6.0)),
@@ -152,11 +149,9 @@ impl eframe::App for DeltoidApp {
             });
 
         // Main content
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.active_tab {
-                Tab::Editor => self.render_editor(ui, ctx),
-                Tab::Settings => self.render_settings(ui),
-            }
+        egui::CentralPanel::default().show(ctx, |ui| match self.active_tab {
+            Tab::Editor => self.render_editor(ui, ctx),
+            Tab::Settings => self.render_settings(ui),
         });
 
         // Bottom status bar
@@ -168,16 +163,30 @@ impl eframe::App for DeltoidApp {
 
                     // Inject status indicator
                     let (inject_label, inject_color) = match self.inject_status {
-                        InjectStatus::Injected => ("● Injected", egui::Color32::from_rgb(80, 200, 120)),
-                        InjectStatus::RunningNotInjected => ("● Sober running", egui::Color32::from_rgb(255, 200, 80)),
-                        InjectStatus::NotRunning => ("● Sober not running", egui::Color32::from_rgb(240, 80, 80)),
-                        InjectStatus::Unknown => ("● Checking…", egui::Color32::from_rgb(200, 200, 200)),
+                        InjectStatus::Injected => {
+                            ("● Injected", egui::Color32::from_rgb(80, 200, 120))
+                        }
+                        InjectStatus::RunningNotInjected => {
+                            ("● Sober running", egui::Color32::from_rgb(255, 200, 80))
+                        }
+                        InjectStatus::NotRunning => {
+                            ("● Sober not running", egui::Color32::from_rgb(240, 80, 80))
+                        }
+                        InjectStatus::Unknown => {
+                            ("● Checking…", egui::Color32::from_rgb(200, 200, 200))
+                        }
                     };
-                    ui.label(egui::RichText::new(inject_label).color(inject_color).size(12.0));
+                    ui.label(
+                        egui::RichText::new(inject_label)
+                            .color(inject_color)
+                            .size(12.0),
+                    );
 
                     ui.separator();
 
-                    let (indicator, color) = if self.status.starts_with('✅') || self.status.starts_with("Script sent") {
+                    let (indicator, color) = if self.status.starts_with('✅')
+                        || self.status.starts_with("Script sent")
+                    {
                         ("●", egui::Color32::from_rgb(80, 200, 120))
                     } else if self.status.starts_with('❌') {
                         ("●", egui::Color32::from_rgb(240, 80, 80))
@@ -219,7 +228,10 @@ impl DeltoidApp {
             };
 
             if btn(ui, "📂", "Open") {
-                if let Some(path) = rfd::FileDialog::new().add_filter("Lua", &["lua"]).pick_file() {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("Lua", &["lua"])
+                    .pick_file()
+                {
                     if let Ok(content) = fs::read_to_string(&path) {
                         self.script = content;
                         self.toast("Script loaded");
@@ -228,7 +240,10 @@ impl DeltoidApp {
             }
 
             if btn(ui, "💾", "Save") {
-                if let Some(path) = rfd::FileDialog::new().add_filter("Lua", &["lua"]).save_file() {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("Lua", &["lua"])
+                    .save_file()
+                {
                     if fs::write(&path, &self.script).is_ok() {
                         self.toast("Script saved");
                     }
@@ -433,10 +448,7 @@ impl DeltoidApp {
                 let hh = (secs / 3600) % 24;
                 let mm = (secs / 60) % 60;
                 let ss = secs % 60;
-                self.status = format!(
-                    "✅ Script sent ({:02}:{:02}:{:02})",
-                    hh, mm, ss
-                );
+                self.status = format!("✅ Script sent ({:02}:{:02}:{:02})", hh, mm, ss);
                 self.toast("Script executed");
             }
             Err(e) => {
