@@ -1,0 +1,31 @@
+# Rust build artifacts
+**/target/
+**/*.rs.bk
+
+# Cargo lock (library projects usually ignore this, but for binaries it's optional)
+# Keeping Cargo.lock for binary projects is actually recommended,
+# but since this is a mixed project we'll include it.
+# Uncomment next line if you want to ignore it:
+# Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled shared libraries
+*.so
+
+# Build artifacts
+deltoid-ui
+deltoid-injector
+libdeltoid.so
+
+# Scripts
+build.sh
+kimiflare.py

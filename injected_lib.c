@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <stdatomic.h>
+#include <time.h>
 
 //  typedefs
 typedef void  (*r_lua_pushcclosure)(void* L, int (*fn)(void*), int n);
@@ -133,6 +134,9 @@ static void unprotect(void* addr, size_t len)
     mprotect((void*)page, len + 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
 }
 
+//  forward declaration
+static void write_heartbeat(void);
+
 //  pcall hook captures lua_State*
 typedef int (*pcall_fn)(void*, int, int, int);
 static pcall_fn o_pcall = NULL;
@@ -142,6 +146,7 @@ static int h_pcall(void* L, int nargs, int nresults, int errfunc)
     if (!atomic_load(&global_L)) {
         atomic_store(&global_L, (uintptr_t)L);
         printf("[ deltoid ] captured L: %p\n", L);
+        write_heartbeat();
     }
     return o_pcall(L, nargs, nresults, errfunc);
 }
@@ -220,6 +225,16 @@ static void register_unc(void* L)
 //  script watcher thread
 //  uses /tmp/deltoid_exec.lua — predictable path, writable
 #define EXEC_PATH "/tmp/deltoid_exec.lua"
+#define HEARTBEAT_PATH "/tmp/deltoid_active"
+
+static void write_heartbeat(void)
+{
+    FILE* f = fopen(HEARTBEAT_PATH, "w");
+    if (f) {
+        fprintf(f, "%d %ld\n", getpid(), (long)time(NULL));
+        fclose(f);
+    }
+}
 
 static void* script_watcher(void* arg)
 {
@@ -247,6 +262,7 @@ static void* script_watcher(void* arg)
                     } else if (r_pcall(L, 0, 0, 0) != 0) {
                         printf("[ deltoid exec error ] %s\n", r_tostring(L, -1));
                     }
+                    write_heartbeat();
                     free(buf);
                 } else {
                     fclose(f);

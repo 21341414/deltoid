@@ -32,6 +32,9 @@ the internal component:
   - `httpget`
 - ✅ external > internal execution pipeline
 - ✅ bounded http requests + basic sanitization
+- ✅ native rust gui (egui) with dark theme
+- ✅ script hub with built-in scripts
+- ✅ file open / save support
 
 ---
 
@@ -56,6 +59,33 @@ the internal component:
 - bridge system exposing native functions into the lua environment
 - execution model supports runtime-driven scripting flow
 - focuses on backend execution behavior in addition to ui components
+
+---
+
+## gui
+
+a native rust gui built with [egui](https://github.com/emilk/egui) + [eframe](https://github.com/emilk/egui/tree/master/crates/eframe) is available in `rust-ui/`.
+
+### building
+
+```bash
+cd rust-ui
+cargo build --release
+```
+
+### running
+
+```bash
+cd rust-ui
+cargo run --release
+```
+
+### gui features
+
+- **editor** — multiline script editor with open/save/clear and ctrl+enter execute
+- **script hub** — built-in scripts (infinite yield, dex explorer, fly, fullbright, walkspeed)
+- **settings** — flatpak configuration and about page
+- **dark theme** — custom hacker-style dark ui
 
 ---
 
