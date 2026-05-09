@@ -17,12 +17,12 @@ static int run(const char* cmd) {
 int main(void) {
     struct passwd* pw = getpwuid(getuid());
     if (!pw) {
-        fprintf(stderr, "[ deltoid error ] could not resolve home directory\n");
+        fprintf(stderr, "[ deltoid error ] could not resolve home dir/dih\n");
         return 1;
     }
     const char* home = pw->pw_dir;
 
-    // reject home paths with single quotes (would break shell commands)
+    // reject home paths with single quotes ( would break shell )
     if (strchr(home, '\'')) {
         fprintf(stderr, "[ deltoid error ] home path contains illegal character\n");
         return 1;
@@ -33,7 +33,7 @@ int main(void) {
     // reset any existing overrides
     run("flatpak override --user --reset org.vinegarhq.Sober");
 
-    // grant read-only access to just the .so — not the entire home
+    // grant read-only access to just the .so, not the entire home
     char* cmd = malloc(PATH_MAX + 256);
     if (!cmd) return 1;
 
