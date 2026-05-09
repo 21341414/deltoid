@@ -1,13 +1,13 @@
 --[[
   deltoid KX; init.lua
-  unc environment bootstrap
+  unc env bootstrap
 
-  issues fixed vs original:
+  issues fixed vs original
    - getrenv() returned `game` which is wrong ( should be the C registry root )
    - setreadonly stub did nothing and wasn't documented as such
-   - request() didn't handle GET/POST default properly
-   - missing rconsole stubs (commonly expected by scripts)
-   - identifyexecutor was defined here but also expected in C — kept both, C wins
+   - request() didn't handle GET/POST properly
+   - missing rconsole stubs ( common by scripts )
+   - identifyexecutor was defined here but also expected in c, so kept both,
 ]]
 
 local getgenv = getgenv or function() return _G end
@@ -63,7 +63,7 @@ env.isreadonly = function(t)
     return mt ~= nil and mt.__newindex ~= nil
 end
 
---  http  (request unc spec)
+--  http  ( request unc spec )
 local HttpService = game:GetService("HttpService")
 
 env.request = function(opts)
@@ -97,7 +97,7 @@ end
 env.http = { request = env.request }
 env.http_request = env.request
 
---  console stubs  ( rconsole* common unc expectation )
+--  console stubs  ( rconsole* common unc )
 env.rconsoleopen    = function() end
 env.rconsoleclear   = function() end
 env.rconsolehide    = function() end
@@ -128,10 +128,10 @@ env.getloadedmodules = function()
     return out
 end
 
---  finalize — don't overwrite if already registered by C side
+--  finaliz, don't overwrite if already registered by C side
 local injected = 0
 for name, func in pairs(env) do
     if type(func) == "function" then injected = injected + 1 end
 end
 
-print(string.format("[ deltoid ] env ready — %d functions registered", injected))
+print(string.format("[ deltoid ] env ready %d functions registered", injected))
