@@ -27,18 +27,18 @@ r_lua_pcall         r_pcall;
 r_lua_getfield      r_getfield;
 r_lua_tostring      r_tostring;
 
-//  global state  ( atomic for cross-thread visibility )
+//  global state  ( atomic for cross thread visibility )
 static atomic_uintptr_t global_L   = 0;
 static atomic_int       registered = 0;
 
-//  pattern scanner — fixed
-//  format: "48 89 5C ? ? 48" space-separated tokens,
-//  each token is a 2-digit hex byte OR '?' ( wildcard ).
+//  pattern scanner fixed
+//  "48 89 5C ? ? 48" space-separated tokens,
+//  each token is a 2-digit hex byte OR uh, question marks
 //  returns first match address or 0.
 static uintptr_t scan_memory(uintptr_t start, uintptr_t end,
                               const char* pattern)
 {
-    // pre-parse pattern into ( byte, is_wildcard ) pairs
+    // pre parse pattern into ( byte, is_wildcard ) pairs
     uint8_t  pat_bytes[256];
     uint8_t  pat_wild[256];
     int      pat_len = 0;
@@ -52,7 +52,7 @@ static uintptr_t scan_memory(uintptr_t start, uintptr_t end,
             pat_bytes[pat_len] = 0;
             pat_len++;
             p++;
-            if (*p == '?') p++;   // consume optional second '?'
+            if (*p == '?') p++;   // optional second uh, wuestion marke
         } else {
             pat_wild[pat_len] = 0;
             pat_bytes[pat_len] = (uint8_t)strtoul(p, (char**)&p, 16);
@@ -77,38 +77,38 @@ static uintptr_t scan_memory(uintptr_t start, uintptr_t end,
 //  trampoline helpers
 
 // returns the length ( in bytes ) of a minimal prologue we can
-// safely relocate — walks instructions until we have >= 14 bytes.
-// Requires a very small runtime disassembler.  For now we use a
-// conservative table-driven single-byte/prefix decoder covering
-// the common x86-64 prologues seen in Luau.
+// safely relocate walks instructions until we have >= 14 bytes.
+// req a very small runtime disassembler.  for now we be using a
+// table-driven single-byte prefix decoder covering
+// the common x86-64 prologues seen in luau.
 static int measure_prologue(const uint8_t* fn)
 {
     int off = 0;
     while (off < 14) {
         uint8_t b = fn[off];
-        // REX prefix
+        
         if ((b & 0xF0) == 0x40) { off++; b = fn[off]; }
         // common 1-byte opcodes with no operands or fixed small operands
         if (b == 0x53 || b == 0x55 || b == 0x56 || b == 0x57 ||  // PUSH r
             b == 0x5B || b == 0x5D || b == 0x5E || b == 0x5F) {  // POP r
             off += 1; continue;
         }
-        if (b == 0x48 || b == 0x4C) {   // REX.W already consumed above — shouldn't hit
+        if (b == 0x48 || b == 0x4C) {   
             off += 1; continue;
         }
-        if (b == 0x89 || b == 0x8B) {   // MOV r/m, r  — ModRM + optional SIB/disp
+        if (b == 0x89 || b == 0x8B) {   
             uint8_t modrm = fn[off + 1];
             uint8_t mod   = modrm >> 6;
             uint8_t rm    = modrm & 7;
             int extra = 1; // modrm byte
-            if (mod == 1) extra += 1;           // disp8
-            else if (mod == 2) extra += 4;      // disp32
-            else if (mod == 0 && rm == 5) extra += 4; // RIP-relative
-            if (rm == 4 && mod != 3) extra += 1; // SIB
+            if (mod == 1) extra += 1;           
+            else if (mod == 2) extra += 4;     
+            else if (mod == 0 && rm == 5) extra += 4; 
+            if (rm == 4 && mod != 3) extra += 1;
             off += 1 + extra; continue;
         }
-        if (b == 0x83) { off += 3; continue; }  // ADD/SUB/CMP r/m, imm8
-        if (b == 0x48 + 0) { off += 1; continue; } // fallthrough guard
+        if (b == 0x83) { off += 3; continue; }  
+        if (b == 0x48 + 0) { off += 1; continue; } // guard
         // unknown just advance 1 byte conservatively
         off += 1;
     }
@@ -133,7 +133,7 @@ static void unprotect(void* addr, size_t len)
     mprotect((void*)page, len + 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
 }
 
-//  pcall hook captures lua_State*
+//  pcall hook captures lua_State
 typedef int (*pcall_fn)(void*, int, int, int);
 static pcall_fn o_pcall = NULL;
 
@@ -146,14 +146,14 @@ static int h_pcall(void* L, int nargs, int nresults, int errfunc)
     return o_pcall(L, nargs, nresults, errfunc);
 }
 
-//  httpget — safe, no shell injection
+//  httpget safe, no shell injection
 //  uses execve(curl) directly via pipe fork
 static int httpget_bridge(void* L)
 {
     const char* url = r_tostring(L, 1);
     if (!url) return 0;
 
-    // sanitise: reject URLs with shell-special chars
+    // sanitisation reject URLs with shell-special chars
     for (const char* c = url; *c; c++) {
         if (*c == '\'' || *c == '"' || *c == '`' ||
             *c == '$'  || *c == '\\' || *c == '\n') {
@@ -218,7 +218,7 @@ static void register_unc(void* L)
 }
 
 //  script watcher thread
-//  uses /tmp/deltoid_exec.lua — predictable path, writable
+//  uses /tmp/deltoid_exec.lua
 #define EXEC_PATH "/tmp/deltoid_exec.lua"
 
 static void* script_watcher(void* arg)
